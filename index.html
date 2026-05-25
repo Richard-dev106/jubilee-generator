@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jubilee Generator</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#0a0a0a,#1b0033,#000);
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.box{
+    width:90%;
+    max-width:820px;
+    background:rgba(255,255,255,0.06);
+    border:2px solid #a64dff;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 0 25px #8a2be2;
+}
+
+h1{
+    text-align:center;
+    color:#d9a8ff;
+    margin-bottom:15px;
+}
+
+.controls{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+}
+
+input,button{
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    font-size:16px;
+}
+
+input{
+    width:220px;
+    background:#1a1a1a;
+    color:white;
+    border:2px solid #8a2be2;
+}
+
+button{
+    background:#8a2be2;
+    color:white;
+    cursor:pointer;
+    box-shadow:0 0 10px #8a2be2;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+.upcoming{
+    background:rgba(166,77,255,0.15);
+    border:2px solid #a64dff;
+    padding:15px;
+    border-radius:15px;
+    margin-bottom:15px;
+    text-align:center;
+}
+
+.card{
+    background:rgba(255,255,255,0.07);
+    border:1px solid #a64dff;
+    padding:15px;
+    border-radius:15px;
+    margin-top:10px;
+}
+
+small{opacity:0.7;}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1 id="title">🎉 Jubilee Generator</h1>
+
+<div class="controls">
+    <input id="birth" placeholder="dd.mm.yyyy">
+
+    <button onclick="generate()" id="genBtn">Generate</button>
+    <button onclick="translatePage()" id="trBtn">Русский</button>
+</div>
+
+<div id="upcoming"></div>
+<div id="result"></div>
+
+</div>
+
+<script>
+
+let isRussian = false;
+
+function parseDate(str){
+    const p = str.split(".");
+    if(p.length !== 3) return null;
+
+    return new Date(
+        parseInt(p[2]),
+        parseInt(p[1]) - 1,
+        parseInt(p[0])
+    );
+}
+
+function formatDate(d){
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+}
+
+function addTime(date, amount, type){
+    let d = new Date(date);
+
+    if(type==="seconds") d.setSeconds(d.getSeconds()+amount);
+    if(type==="minutes") d.setMinutes(d.getMinutes()+amount);
+    if(type==="days") d.setDate(d.getDate()+amount);
+    if(type==="months") d.setMonth(d.getMonth()+amount);
+    if(type==="years") d.setFullYear(d.getFullYear()+amount);
+    if(type==="decades") d.setFullYear(d.getFullYear()+amount*10);
+
+    return d;
+}
+
+// 🌍 TRANSLATION ENGINE
+function typeLabel(amount, type){
+
+    if(!isRussian){
+        return `${amount} ${type}`;
+    }
+
+    if(type==="seconds") return `${amount} секунд`;
+    if(type==="minutes") return `${amount} минут`;
+    if(type==="days") return `${amount} дней`;
+    if(type==="months") return `${amount} месяцев`;
+    if(type==="years") return `${amount} лет`;
+    if(type==="decades") return `${amount} десятилетий`;
+
+    return `${amount} ${type}`;
+}
+
+function statusText(date){
+    const now = new Date();
+
+    if(!isRussian){
+        return date < now ? "✔ happened" : "🚀 will happen";
+    }
+
+    return date < now ? "✔ прошло" : "🚀 будет";
+}
+
+function buildAllJubilees(birth){
+    let list = [];
+
+    for(let i=1;i<=60;i++){
+
+        list.push({type:"seconds", amount:i});
+        list.push({type:"minutes", amount:i});
+        list.push({type:"days", amount:i});
+        list.push({type:"months", amount:i});
+        list.push({type:"years", amount:i});
+
+        if(i<=10) list.push({type:"decades", amount:i});
+    }
+
+    return list.map(j=>({
+        ...j,
+        date:addTime(birth,j.amount,j.type)
+    }));
+}
+
+function generate(){
+
+    const input = document.getElementById("birth").value;
+    const result = document.getElementById("result");
+    const upcomingBox = document.getElementById("upcoming");
+
+    result.innerHTML = "";
+    upcomingBox.innerHTML = "";
+
+    const birth = parseDate(input);
+
+    if(!birth || isNaN(birth)){
+        alert(isRussian ? "Неверная дата!" : "Invalid date!");
+        return;
+    }
+
+    const all = buildAllJubilees(birth);
+    const now = new Date();
+
+    // NEXT UPCOMING (REAL)
+    const future = all
+        .filter(e => e.date > now)
+        .sort((a,b)=>a.date-b.date);
+
+    if(future.length > 0){
+        const next = future[0];
+
+        upcomingBox.innerHTML = `
+            <div class="upcoming">
+                <h3>🚀 ${isRussian ? "Ближайшее событие" : "Next upcoming jubilee"}</h3>
+                <b>${typeLabel(next.amount,next.type)}</b><br>
+                ${formatDate(next.date)}
+            </div>
+        `;
+    }
+
+    // RANDOM 10
+    const shuffled = [...all].sort(()=>Math.random()-0.5).slice(0,10);
+
+    shuffled.forEach(e=>{
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+            <b>${typeLabel(e.amount,e.type)} ${statusText(e.date)}</b><br>
+            <small>${formatDate(e.date)}</small>
+        `;
+
+        result.appendChild(card);
+    });
+}
+
+function translatePage(){
+
+    isRussian = !isRussian;
+
+    document.getElementById("title").innerText =
+        isRussian ? "🎉 Генератор Юбилеев" : "🎉 Jubilee Generator";
+
+    document.getElementById("genBtn").innerText =
+        isRussian ? "Сгенерировать" : "Generate";
+
+    document.getElementById("trBtn").innerText =
+        isRussian ? "English" : "Русский";
+
+    document.getElementById("birth").placeholder =
+        isRussian ? "дд.мм.гггг" : "dd.mm.yyyy";
+
+    generate(); // refresh translations instantly
+}
+
+</script>
+
+</body>
+</html>
