@@ -19,7 +19,7 @@ body{
 
 .box{
     width:90%;
-    max-width:820px;
+    max-width:850px;
     background:rgba(255,255,255,0.06);
     border:2px solid #a64dff;
     border-radius:20px;
@@ -49,7 +49,7 @@ input,button{
 }
 
 input{
-    width:220px;
+    width:230px;
     background:#1a1a1a;
     color:white;
     border:2px solid #8a2be2;
@@ -95,7 +95,6 @@ small{opacity:0.7;}
 
 <div class="controls">
     <input id="birth" placeholder="dd.mm.yyyy">
-
     <button onclick="generate()" id="genBtn">Generate</button>
     <button onclick="translatePage()" id="trBtn">Русский</button>
 </div>
@@ -109,6 +108,7 @@ small{opacity:0.7;}
 
 let isRussian = false;
 
+/* ---------- DATE PARSER ---------- */
 function parseDate(str){
     const p = str.split(".");
     if(p.length !== 3) return null;
@@ -120,10 +120,12 @@ function parseDate(str){
     );
 }
 
+/* ---------- FORMAT ---------- */
 function formatDate(d){
     return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
 }
 
+/* ---------- TIME ENGINE ---------- */
 function addTime(date, amount, type){
     let d = new Date(date);
 
@@ -137,12 +139,24 @@ function addTime(date, amount, type){
     return d;
 }
 
-// 🌍 TRANSLATION ENGINE
-function typeLabel(amount, type){
+/* ---------- RANDOM LIMITS ---------- */
+function rand(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
 
-    if(!isRussian){
-        return `${amount} ${type}`;
-    }
+function randomAmount(type){
+
+    if(type==="seconds") return rand(314, 31415926535);
+    if(type==="minutes") return rand(60, 314159265);
+    if(type==="days") return rand(7, 314159);
+    if(type==="months") return rand(1, 314);
+    if(type==="years") return rand(1, 150);
+    if(type==="decades") return rand(1, 14);
+}
+
+/* ---------- TEXT ---------- */
+function label(amount,type){
+    if(!isRussian) return `${amount} ${type}`;
 
     if(type==="seconds") return `${amount} секунд`;
     if(type==="minutes") return `${amount} минут`;
@@ -150,40 +164,39 @@ function typeLabel(amount, type){
     if(type==="months") return `${amount} месяцев`;
     if(type==="years") return `${amount} лет`;
     if(type==="decades") return `${amount} десятилетий`;
-
-    return `${amount} ${type}`;
 }
 
-function statusText(date){
+function status(date){
     const now = new Date();
 
     if(!isRussian){
         return date < now ? "✔ happened" : "🚀 will happen";
     }
-
     return date < now ? "✔ прошло" : "🚀 будет";
 }
 
-function buildAllJubilees(birth){
+/* ---------- BUILD EVENTS ---------- */
+function buildEvents(birth){
+
+    const types = ["seconds","minutes","days","months","years","decades"];
     let list = [];
 
-    for(let i=1;i<=60;i++){
+    for(let i=0;i<120;i++){
 
-        list.push({type:"seconds", amount:i});
-        list.push({type:"minutes", amount:i});
-        list.push({type:"days", amount:i});
-        list.push({type:"months", amount:i});
-        list.push({type:"years", amount:i});
+        let type = types[Math.floor(Math.random()*types.length)];
+        let amount = randomAmount(type);
 
-        if(i<=10) list.push({type:"decades", amount:i});
+        list.push({
+            type,
+            amount,
+            date:addTime(birth,amount,type)
+        });
     }
 
-    return list.map(j=>({
-        ...j,
-        date:addTime(birth,j.amount,j.type)
-    }));
+    return list;
 }
 
+/* ---------- MAIN ---------- */
 function generate(){
 
     const input = document.getElementById("birth").value;
@@ -200,36 +213,34 @@ function generate(){
         return;
     }
 
-    const all = buildAllJubilees(birth);
+    let events = buildEvents(birth);
+
+    // SORT nearest → farthest
+    events.sort((a,b)=>a.date-b.date);
+
     const now = new Date();
 
-    // NEXT UPCOMING (REAL)
-    const future = all
-        .filter(e => e.date > now)
-        .sort((a,b)=>a.date-b.date);
+    // NEXT UPCOMING REAL EVENT
+    const next = events.find(e => e.date > now);
 
-    if(future.length > 0){
-        const next = future[0];
-
+    if(next){
         upcomingBox.innerHTML = `
             <div class="upcoming">
-                <h3>🚀 ${isRussian ? "Ближайшее событие" : "Next upcoming jubilee"}</h3>
-                <b>${typeLabel(next.amount,next.type)}</b><br>
+                <h3>🚀 ${isRussian ? "Следующее событие" : "Next upcoming jubilee"}</h3>
+                <b>${label(next.amount,next.type)}</b><br>
                 ${formatDate(next.date)}
             </div>
         `;
     }
 
-    // RANDOM 10
-    const shuffled = [...all].sort(()=>Math.random()-0.5).slice(0,10);
-
-    shuffled.forEach(e=>{
+    // SHOW TOP 10 SORTED EVENTS
+    events.slice(0,10).forEach(e=>{
 
         const card = document.createElement("div");
         card.className = "card";
 
         card.innerHTML = `
-            <b>${typeLabel(e.amount,e.type)} ${statusText(e.date)}</b><br>
+            <b>${label(e.amount,e.type)} ${status(e.date)}</b><br>
             <small>${formatDate(e.date)}</small>
         `;
 
@@ -237,6 +248,7 @@ function generate(){
     });
 }
 
+/* ---------- TRANSLATE ---------- */
 function translatePage(){
 
     isRussian = !isRussian;
@@ -253,7 +265,7 @@ function translatePage(){
     document.getElementById("birth").placeholder =
         isRussian ? "дд.мм.гггг" : "dd.mm.yyyy";
 
-    generate(); // refresh translations instantly
+    generate();
 }
 
 </script>
