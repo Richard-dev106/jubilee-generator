@@ -8,49 +8,45 @@
 <style>
 body{
     margin:0;
-    font-family:Arial;
-    background:linear-gradient(135deg,#0a0a0a,#1b0033,#000);
-    color:white;
+    min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    min-height:100vh;
+    font-family:Arial;
+    background:linear-gradient(135deg,#050505,#1b0033,#000);
+    color:white;
 }
 
 .box{
     width:90%;
-    max-width:850px;
+    max-width:900px;
     background:rgba(255,255,255,0.06);
-    border:2px solid #a64dff;
+    border:2px solid #9d4dff;
     border-radius:20px;
     padding:25px;
     box-shadow:0 0 25px #8a2be2;
 }
 
-h1{
-    text-align:center;
-    color:#d9a8ff;
-    margin-bottom:15px;
-}
+h1{text-align:center;color:#d9a8ff;}
 
 .controls{
     display:flex;
-    gap:10px;
     justify-content:center;
-    flex-wrap:wrap;
+    gap:10px;
     margin-bottom:20px;
+    flex-wrap:wrap;
 }
 
 input,button{
     padding:12px;
-    border-radius:10px;
     border:none;
+    border-radius:10px;
     font-size:16px;
 }
 
 input{
     width:230px;
-    background:#1a1a1a;
+    background:#111;
     color:white;
     border:2px solid #8a2be2;
 }
@@ -59,31 +55,33 @@ button{
     background:#8a2be2;
     color:white;
     cursor:pointer;
-    box-shadow:0 0 10px #8a2be2;
 }
 
-button:hover{
-    transform:scale(1.05);
-}
-
-.upcoming{
-    background:rgba(166,77,255,0.15);
-    border:2px solid #a64dff;
-    padding:15px;
-    border-radius:15px;
-    margin-bottom:15px;
-    text-align:center;
-}
+button:hover{transform:scale(1.05);}
 
 .card{
-    background:rgba(255,255,255,0.07);
-    border:1px solid #a64dff;
-    padding:15px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid #9d4dff;
     border-radius:15px;
+    padding:15px;
     margin-top:10px;
 }
 
-small{opacity:0.7;}
+small{opacity:0.75;}
+
+.plane{
+    position:fixed;
+    top:50%;
+    left:-120px;
+    font-size:40px;
+    animation:fly 3s linear forwards;
+    pointer-events:none;
+}
+
+@keyframes fly{
+    from{left:-120px;}
+    to{left:110%;}
+}
 </style>
 </head>
 
@@ -94,228 +92,234 @@ small{opacity:0.7;}
 <h1 id="title">🎉 Jubilee Generator</h1>
 
 <div class="controls">
-    <input id="birth" placeholder="dd.mm.yyyy">
-    <button onclick="generate()" id="genBtn">Generate</button>
-    <button onclick="translatePage()" id="trBtn">Русский</button>
+
+<input id="birth" placeholder="dd.mm.yyyy">
+
+<button onclick="generate()" id="genBtn">Generate</button>
+<button onclick="translatePage()" id="trBtn">Русский</button>
+
 </div>
 
-<div id="upcoming"></div>
 <div id="result"></div>
 
 </div>
 
 <script>
 
-let isRussian = true;
+let isRussian = false;
+let currentEvents = [];
 
-/* ---------- RANDOM ---------- */
-
-function rand(min,max){
-    return Math.floor(Math.random()*(max-min+1))+min;
-}
-
-/* ---------- DATE ---------- */
-
+/* ---------- STRICT DATE VALIDATION ---------- */
 function parseDate(str){
 
     const p = str.split(".");
-
     if(p.length !== 3) return null;
 
-    return new Date(
-        parseInt(p[2]),
-        parseInt(p[1])-1,
-        parseInt(p[0])
-    );
+    let day = Number(p[0]);
+    let month = Number(p[1]);
+    let year = Number(p[2]);
+
+    if(!day || !month || !year) return null;
+
+    if(month < 1 || month > 12) return null;
+    if(day < 1 || day > 31) return null;
+
+    let date = new Date(year, month - 1, day);
+
+    if(
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ){
+        return null;
+    }
+
+    if(date > new Date()) return null;
+
+    return date;
 }
 
-function formatDate(date){
-
-    return `${String(date.getDate()).padStart(2,"0")}.${String(date.getMonth()+1).padStart(2,"0")}.${date.getFullYear()}`;
+/* ---------- FORMAT ---------- */
+function formatDate(d){
+    return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
 }
 
 /* ---------- TIME ---------- */
-
-function addTime(date,amount,type){
-
+function addTime(date, amount, type){
     let d = new Date(date);
 
-    if(type==="seconds") d.setSeconds(d.getSeconds()+amount);
-    if(type==="minutes") d.setMinutes(d.getMinutes()+amount);
     if(type==="days") d.setDate(d.getDate()+amount);
     if(type==="months") d.setMonth(d.getMonth()+amount);
     if(type==="years") d.setFullYear(d.getFullYear()+amount);
-    if(type==="decades") d.setFullYear(d.getFullYear()+(amount*10));
 
     return d;
 }
 
-/* ---------- TEXT ---------- */
+/* ---------- SPECIALS ---------- */
+const PI = [314,3141];
 
-function label(amount,type){
+const SPECIALS = [
+    42,69,100,144,256,360,720,747,777,1000
+];
 
-    if(!isRussian){
-        return `${amount} ${type}`;
+/* ---------- PICK ---------- */
+function getSpecial(type){
+
+    let list = [...SPECIALS];
+
+    if(type==="days") list.push(...PI);
+    if(type==="months") list = list.filter(n=>n<=1000);
+    if(type==="years") list = list.filter(n=>n<=150);
+
+    if(Math.random()<0.6){
+        return list[Math.floor(Math.random()*list.length)];
     }
 
-    if(type==="seconds") return `${amount} секунд`;
-    if(type==="minutes") return `${amount} минут`;
-    if(type==="days") return `${amount} дней`;
-    if(type==="months") return `${amount} месяцев`;
-    if(type==="years") return `${amount} лет`;
-    if(type==="decades") return `${amount} десятилетий`;
+    return null;
 }
 
-/* ---------- BUILD ALL ---------- */
+/* ---------- PLANE ---------- */
+function spawnPlane(){
+    const p=document.createElement("div");
+    p.className="plane";
+    p.innerText="✈️";
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),3000);
+}
 
-function buildAllEvents(birth){
+/* ---------- LABEL ---------- */
+function label(amount,type){
 
+    let unit =
+        type==="days"
+        ? (isRussian?"дней":"days")
+        : type==="months"
+        ? (isRussian?"месяцев":"months")
+        : (isRussian?"лет":"years");
+
+    if(isRussian){
+        if(amount===747) return `747 (самолёт ✈️) ${unit}`;
+        if(amount===777) return `777 (удача 🍀) ${unit}`;
+        if(amount===314) return `314 (π) ${unit}`;
+        if(amount===3141) return `3141 (π) ${unit}`;
+        return `${amount} ${unit}`;
+    }
+
+    if(amount===747) return `747 (plane ✈️) ${unit}`;
+    if(amount===777) return `777 (lucky 🍀) ${unit}`;
+    if(amount===314) return `314 (pi) ${unit}`;
+    if(amount===3141) return `3141 (pi) ${unit}`;
+
+    return `${amount} ${unit}`;
+}
+
+/* ---------- NO DUPLICATES ---------- */
+function buildEvents(birth){
+
+    let used = new Set();
     let list = [];
 
-    /* seconds */
-    for(let i=314;i<=5000;i++){
+    function unique(type){
 
-        list.push({
-            type:"seconds",
-            amount:i,
-            date:addTime(birth,i,"seconds")
-        });
+        while(true){
+
+            let amount = getSpecial(type);
+
+            if(amount===null){
+                if(type==="days") amount=Math.floor(Math.random()*5000)+50;
+                if(type==="months") amount=Math.floor(Math.random()*1000)+1;
+                if(type==="years") amount=Math.floor(Math.random()*150)+1;
+            }
+
+            let key = type+"-"+amount;
+
+            if(!used.has(key)){
+                used.add(key);
+                return amount;
+            }
+        }
     }
 
-    /* minutes */
-    for(let i=60;i<=10000;i++){
+    for(let i=0;i<15;i++){
+
+        let type=["days","months","years"][Math.floor(Math.random()*3)];
+        let amount = unique(type);
 
         list.push({
-            type:"minutes",
-            amount:i,
-            date:addTime(birth,i,"minutes")
-        });
-    }
-
-    /* days */
-    for(let i=7;i<=5000;i++){
-
-        list.push({
-            type:"days",
-            amount:i,
-            date:addTime(birth,i,"days")
-        });
-    }
-
-    /* months */
-    for(let i=1;i<=314;i++){
-
-        list.push({
-            type:"months",
-            amount:i,
-            date:addTime(birth,i,"months")
-        });
-    }
-
-    /* years */
-    for(let i=1;i<=150;i++){
-
-        list.push({
-            type:"years",
-            amount:i,
-            date:addTime(birth,i,"years")
-        });
-    }
-
-    /* decades */
-    for(let i=1;i<=14;i++){
-
-        list.push({
-            type:"decades",
-            amount:i,
-            date:addTime(birth,i,"decades")
+            type,
+            amount,
+            date:addTime(birth,amount,type)
         });
     }
 
     return list;
 }
 
-/* ---------- MAIN ---------- */
+/* ---------- RENDER ---------- */
+function render(){
 
-function generate(){
+    const r=document.getElementById("result");
+    r.innerHTML="";
 
-    const input = document.getElementById("birth").value;
-    const result = document.getElementById("result");
-    const upcoming = document.getElementById("upcoming");
+    currentEvents.forEach(e=>{
 
-    result.innerHTML = "";
-    upcoming.innerHTML = "";
+        if(e.amount===747) spawnPlane();
 
-    const birth = parseDate(input);
+        const d=document.createElement("div");
+        d.className="card";
 
-    if(!birth || isNaN(birth)){
-        alert("Invalid date!");
-        return;
-    }
-
-    /* ENTIRE LIST */
-    let events = buildAllEvents(birth);
-
-    const now = new Date();
-
-    /* SORT ENTIRE LIST */
-    events.sort((a,b)=>a.date-b.date);
-
-    /* TAKE FIRST FUTURE EVENT */
-    const next = events.find(e => e.date > now);
-
-    if(next){
-
-        upcoming.innerHTML = `
-        <div class="upcoming">
-
-            <h2>
-                🚀 ${
-                    isRussian
-                    ? "Следующий юбилей"
-                    : "Next upcoming jubilee"
-                }
-            </h2>
-
-            <h3>
-                ${label(next.amount,next.type)}
-            </h3>
-
-            <div>
-                ${formatDate(next.date)}
-            </div>
-
-        </div>
-        `;
-    }
-
-    /* SHOW RANDOM 20 */
-    const random20 = [...events]
-        .sort(()=>Math.random()-0.5)
-        .slice(0,20);
-
-    random20.forEach(event=>{
-
-        const card = document.createElement("div");
-
-        card.className = "card";
-
-        card.innerHTML = `
-        <b>
-            ${label(event.amount,event.type)}
-        </b>
-
-        <br>
-
-        <small>
-            ${formatDate(event.date)}
-        </small>
+        d.innerHTML=`
+        <b>${label(e.amount,e.type)}</b><br>
+        <small>${formatDate(e.date)}</small>
         `;
 
-        result.appendChild(card);
+        r.appendChild(d);
     });
 }
 
+/* ---------- GENERATE ---------- */
+function generate(){
+
+    const birth=parseDate(document.getElementById("birth").value);
+
+    if(!birth){
+        alert(isRussian?"Неверная дата!":"Invalid date!");
+        return;
+    }
+
+    currentEvents=buildEvents(birth);
+    render();
+}
+
+/* ---------- TRANSLATE ---------- */
+function translatePage(){
+
+    isRussian=!isRussian;
+
+    document.getElementById("title").innerText=
+        isRussian?"🎉 Генератор Юбилеев":"🎉 Jubilee Generator";
+
+    document.getElementById("genBtn").innerText=
+        isRussian?"Сгенерировать":"Generate";
+
+    document.getElementById("trBtn").innerText=
+        isRussian?"English":"Русский";
+
+    document.getElementById("birth").placeholder=
+        isRussian?"дд.мм.гггг":"dd.mm.yyyy";
+
+    if(currentEvents.length>0) render();
+}
+
+/* ---------- ENTER KEY ---------- */
+document.getElementById("birth").addEventListener("keydown", e=>{
+    if(e.key==="Enter") generate();
+});
+
+/* ---------- START ---------- */
+window.onload=generate;
+
 </script>
+
 </body>
 </html>
