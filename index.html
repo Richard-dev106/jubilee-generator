@@ -109,7 +109,12 @@ small{opacity:0.75;}
 let isRussian = false;
 let currentEvents = [];
 
-/* ---------- STRICT DATE VALIDATION ---------- */
+/* ---------- ENTER KEY ---------- */
+document.getElementById("birth").addEventListener("keydown", e=>{
+    if(e.key === "Enter") generate();
+});
+
+/* ---------- STRICT DATE CHECK ---------- */
 function parseDate(str){
 
     const p = str.split(".");
@@ -144,7 +149,7 @@ function formatDate(d){
     return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()}`;
 }
 
-/* ---------- TIME ---------- */
+/* ---------- ADD TIME ---------- */
 function addTime(date, amount, type){
     let d = new Date(date);
 
@@ -277,7 +282,7 @@ function render(){
     });
 }
 
-/* ---------- GENERATE ---------- */
+/* ---------- GENERATE (NO AUTO RUN BUG FIXED) ---------- */
 function generate(){
 
     const birth=parseDate(document.getElementById("birth").value);
@@ -311,13 +316,11 @@ function translatePage(){
     if(currentEvents.length>0) render();
 }
 
-/* ---------- ENTER KEY ---------- */
-document.getElementById("birth").addEventListener("keydown", e=>{
-    if(e.key==="Enter") generate();
-});
-
-/* ---------- START ---------- */
-window.onload=generate;
+/* ---------- SAFE START (FIXED BUG) ---------- */
+// no auto generate on load anymore
+window.onload = function(){
+    document.getElementById("result").innerHTML = "";
+};
 
 </script>
 
