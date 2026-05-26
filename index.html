@@ -106,27 +106,38 @@ small{opacity:0.7;}
 
 <script>
 
-let isRussian = false;
+let isRussian = true;
 
-/* ---------- DATE PARSER ---------- */
+/* ---------- RANDOM ---------- */
+
+function rand(min,max){
+    return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+/* ---------- DATE ---------- */
+
 function parseDate(str){
+
     const p = str.split(".");
+
     if(p.length !== 3) return null;
 
     return new Date(
         parseInt(p[2]),
-        parseInt(p[1]) - 1,
+        parseInt(p[1])-1,
         parseInt(p[0])
     );
 }
 
-/* ---------- FORMAT ---------- */
-function formatDate(d){
-    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+function formatDate(date){
+
+    return `${String(date.getDate()).padStart(2,"0")}.${String(date.getMonth()+1).padStart(2,"0")}.${date.getFullYear()}`;
 }
 
-/* ---------- TIME ENGINE ---------- */
-function addTime(date, amount, type){
+/* ---------- TIME ---------- */
+
+function addTime(date,amount,type){
+
     let d = new Date(date);
 
     if(type==="seconds") d.setSeconds(d.getSeconds()+amount);
@@ -134,29 +145,18 @@ function addTime(date, amount, type){
     if(type==="days") d.setDate(d.getDate()+amount);
     if(type==="months") d.setMonth(d.getMonth()+amount);
     if(type==="years") d.setFullYear(d.getFullYear()+amount);
-    if(type==="decades") d.setFullYear(d.getFullYear()+amount*10);
+    if(type==="decades") d.setFullYear(d.getFullYear()+(amount*10));
 
     return d;
 }
 
-/* ---------- RANDOM LIMITS ---------- */
-function rand(min,max){
-    return Math.floor(Math.random()*(max-min+1))+min;
-}
-
-function randomAmount(type){
-
-    if(type==="seconds") return rand(314, 31415926535);
-    if(type==="minutes") return rand(60, 314159265);
-    if(type==="days") return rand(7, 314159);
-    if(type==="months") return rand(1, 314);
-    if(type==="years") return rand(1, 150);
-    if(type==="decades") return rand(1, 14);
-}
-
 /* ---------- TEXT ---------- */
+
 function label(amount,type){
-    if(!isRussian) return `${amount} ${type}`;
+
+    if(!isRussian){
+        return `${amount} ${type}`;
+    }
 
     if(type==="seconds") return `${amount} секунд`;
     if(type==="minutes") return `${amount} минут`;
@@ -166,30 +166,69 @@ function label(amount,type){
     if(type==="decades") return `${amount} десятилетий`;
 }
 
-function status(date){
-    const now = new Date();
+/* ---------- BUILD ALL ---------- */
 
-    if(!isRussian){
-        return date < now ? "✔ happened" : "🚀 will happen";
-    }
-    return date < now ? "✔ прошло" : "🚀 будет";
-}
+function buildAllEvents(birth){
 
-/* ---------- BUILD EVENTS ---------- */
-function buildEvents(birth){
-
-    const types = ["seconds","minutes","days","months","years","decades"];
     let list = [];
 
-    for(let i=0;i<120;i++){
-
-        let type = types[Math.floor(Math.random()*types.length)];
-        let amount = randomAmount(type);
+    /* seconds */
+    for(let i=314;i<=5000;i++){
 
         list.push({
-            type,
-            amount,
-            date:addTime(birth,amount,type)
+            type:"seconds",
+            amount:i,
+            date:addTime(birth,i,"seconds")
+        });
+    }
+
+    /* minutes */
+    for(let i=60;i<=10000;i++){
+
+        list.push({
+            type:"minutes",
+            amount:i,
+            date:addTime(birth,i,"minutes")
+        });
+    }
+
+    /* days */
+    for(let i=7;i<=5000;i++){
+
+        list.push({
+            type:"days",
+            amount:i,
+            date:addTime(birth,i,"days")
+        });
+    }
+
+    /* months */
+    for(let i=1;i<=314;i++){
+
+        list.push({
+            type:"months",
+            amount:i,
+            date:addTime(birth,i,"months")
+        });
+    }
+
+    /* years */
+    for(let i=1;i<=150;i++){
+
+        list.push({
+            type:"years",
+            amount:i,
+            date:addTime(birth,i,"years")
+        });
+    }
+
+    /* decades */
+    for(let i=1;i<=14;i++){
+
+        list.push({
+            type:"decades",
+            amount:i,
+            date:addTime(birth,i,"decades")
         });
     }
 
@@ -197,78 +236,86 @@ function buildEvents(birth){
 }
 
 /* ---------- MAIN ---------- */
+
 function generate(){
 
     const input = document.getElementById("birth").value;
     const result = document.getElementById("result");
-    const upcomingBox = document.getElementById("upcoming");
+    const upcoming = document.getElementById("upcoming");
 
     result.innerHTML = "";
-    upcomingBox.innerHTML = "";
+    upcoming.innerHTML = "";
 
     const birth = parseDate(input);
 
     if(!birth || isNaN(birth)){
-        alert(isRussian ? "Неверная дата!" : "Invalid date!");
+        alert("Invalid date!");
         return;
     }
 
-    let events = buildEvents(birth);
-
-    // SORT nearest → farthest
-    events.sort((a,b)=>a.date-b.date);
+    /* ENTIRE LIST */
+    let events = buildAllEvents(birth);
 
     const now = new Date();
 
-    // NEXT UPCOMING REAL EVENT
+    /* SORT ENTIRE LIST */
+    events.sort((a,b)=>a.date-b.date);
+
+    /* TAKE FIRST FUTURE EVENT */
     const next = events.find(e => e.date > now);
 
     if(next){
-        upcomingBox.innerHTML = `
-            <div class="upcoming">
-                <h3>🚀 ${isRussian ? "Следующее событие" : "Next upcoming jubilee"}</h3>
-                <b>${label(next.amount,next.type)}</b><br>
+
+        upcoming.innerHTML = `
+        <div class="upcoming">
+
+            <h2>
+                🚀 ${
+                    isRussian
+                    ? "Следующий юбилей"
+                    : "Next upcoming jubilee"
+                }
+            </h2>
+
+            <h3>
+                ${label(next.amount,next.type)}
+            </h3>
+
+            <div>
                 ${formatDate(next.date)}
             </div>
+
+        </div>
         `;
     }
 
-    // SHOW TOP 10 SORTED EVENTS
-    events.slice(0,10).forEach(e=>{
+    /* SHOW RANDOM 20 */
+    const random20 = [...events]
+        .sort(()=>Math.random()-0.5)
+        .slice(0,20);
+
+    random20.forEach(event=>{
 
         const card = document.createElement("div");
+
         card.className = "card";
 
         card.innerHTML = `
-            <b>${label(e.amount,e.type)} ${status(e.date)}</b><br>
-            <small>${formatDate(e.date)}</small>
+        <b>
+            ${label(event.amount,event.type)}
+        </b>
+
+        <br>
+
+        <small>
+            ${formatDate(event.date)}
+        </small>
         `;
 
         result.appendChild(card);
     });
 }
 
-/* ---------- TRANSLATE ---------- */
-function translatePage(){
-
-    isRussian = !isRussian;
-
-    document.getElementById("title").innerText =
-        isRussian ? "🎉 Генератор Юбилеев" : "🎉 Jubilee Generator";
-
-    document.getElementById("genBtn").innerText =
-        isRussian ? "Сгенерировать" : "Generate";
-
-    document.getElementById("trBtn").innerText =
-        isRussian ? "English" : "Русский";
-
-    document.getElementById("birth").placeholder =
-        isRussian ? "дд.мм.гггг" : "dd.mm.yyyy";
-
-    generate();
-}
-
 </script>
-
 </body>
 </html>
