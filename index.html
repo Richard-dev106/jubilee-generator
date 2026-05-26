@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jubilee Generator</title>
+<title>Milestone Generator</title>
 
 <style>
 body{
@@ -202,16 +202,16 @@ function label(amount,type){
         ? (isRussian?"месяцев":"months")
         : (isRussian?"лет":"years");
 
-    if(isRussian){
+    if(isRussian){                   
         if(amount===747) return `747 (самолёт ✈️) ${unit}`;
-        if(amount===777) return `777 (удача 🍀) ${unit}`;
+        if(amount===777) return `777 (удача 🍀🍀) ${unit}`;
         if(amount===314) return `314 (π) ${unit}`;
         if(amount===3141) return `3141 (π) ${unit}`;
         return `${amount} ${unit}`;
     }
-
+            
     if(amount===747) return `747 (plane ✈️) ${unit}`;
-    if(amount===777) return `777 (lucky 🍀) ${unit}`;
+    if(amount===777) return `777 (lucky 🍀🍀) ${unit}`;
     if(amount===314) return `314 (pi) ${unit}`;
     if(amount===3141) return `3141 (pi) ${unit}`;
 
@@ -316,7 +316,7 @@ function translatePage(){
     if(currentEvents.length>0) render();
 }
 
-/* ---------- SAFE START (FIXED BUG) ---------- */
+/* ----------- SAFE START (FIXED BUG) ----------- */
 // no auto generate on load anymore
 window.onload = function(){
     document.getElementById("result").innerHTML = "";
